@@ -28,6 +28,7 @@ struct HealthDashboardView: View {
                 Divider()
 
                 // Recent activity
+                OperationHistoryView().padding(.horizontal, 24)
                 ActivityHistoryView(agentLabel: nil)
                     .padding(.horizontal, 24)
                     .padding(.bottom, 24)
@@ -37,9 +38,6 @@ struct HealthDashboardView: View {
         .onAppear {
             healthMonitor.startMonitoring()
             healthMonitor.updateCrashLoops(from: historyService)
-        }
-        .onDisappear {
-            healthMonitor.stopMonitoring()
         }
     }
 
@@ -101,7 +99,7 @@ struct HealthDashboardView: View {
                             .fill(.red)
                             .frame(width: 8, height: 8)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(problem.label)
+                            Text(manager.agents.first { $0.id == problem.label }?.label ?? problem.label)
                                 .font(.system(.caption, weight: .medium))
                                 .lineLimit(1)
                             Text(problem.reason)

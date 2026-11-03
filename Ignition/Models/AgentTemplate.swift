@@ -36,14 +36,14 @@ enum AgentTemplate: String, CaseIterable, Identifiable {
             form.program = "/bin/sh"
             form.arguments = ["-c", "echo 'Hello from Ignition'"]
             form.startInterval = 300
-            form.standardOutPath = "/tmp/ignition-agent.stdout.log"
-            form.standardErrorPath = "/tmp/ignition-agent.stderr.log"
+            form.standardOutPath = NSHomeDirectory() + "/Library/Logs/Ignition/agent.stdout.log"
+            form.standardErrorPath = NSHomeDirectory() + "/Library/Logs/Ignition/agent.stderr.log"
         case .watchFolder:
             form.program = "/bin/sh"
             form.arguments = ["-c", "echo 'Folder changed'"]
             form.watchPaths = [NSHomeDirectory() + "/Downloads"]
-            form.standardOutPath = "/tmp/ignition-agent.stdout.log"
-            form.standardErrorPath = "/tmp/ignition-agent.stderr.log"
+            form.standardOutPath = NSHomeDirectory() + "/Library/Logs/Ignition/agent.stdout.log"
+            form.standardErrorPath = NSHomeDirectory() + "/Library/Logs/Ignition/agent.stderr.log"
         case .runAtLogin:
             form.program = "/usr/bin/open"
             form.arguments = ["-a", "Safari"]
@@ -53,8 +53,8 @@ enum AgentTemplate: String, CaseIterable, Identifiable {
             form.arguments = ["-c", "echo 'Scheduled run'"]
             form.calendarHour = 9
             form.calendarMinute = 0
-            form.standardOutPath = "/tmp/ignition-agent.stdout.log"
-            form.standardErrorPath = "/tmp/ignition-agent.stderr.log"
+            form.standardOutPath = NSHomeDirectory() + "/Library/Logs/Ignition/agent.stdout.log"
+            form.standardErrorPath = NSHomeDirectory() + "/Library/Logs/Ignition/agent.stderr.log"
         case .blank:
             break
         }
@@ -63,6 +63,7 @@ enum AgentTemplate: String, CaseIterable, Identifiable {
 }
 
 struct AgentFormData {
+    var domain: AgentDomain = .userAgents
     var label = ""
     var program = ""
     var arguments: [String] = []
@@ -84,6 +85,15 @@ struct AgentFormData {
         } else if !label.contains(".") {
             errors.append("Label should use reverse-DNS format (e.g. com.example.myagent)")
         }
+        do { try PlistWriteService.validateLabel(label) }
+        catch { errors.append(error.localizedDescription) }
+        if label.hasPrefix("com.apple.") { errors.append("Apple system labels are protected") }
+        if !program.isEmpty && !program.hasPrefix("/") {
+            errors.append("Use an absolute program path; launchd does not expand shell paths")
+        }
+        if let startInterval, startInterval <= 0 { errors.append("Start interval must be greater than zero") }
+        if let calendarHour, !(0...23).contains(calendarHour) { errors.append("Hour must be between 0 and 23") }
+        if let calendarMinute, !(0...59).contains(calendarMinute) { errors.append("Minute must be between 0 and 59") }
         if program.isEmpty {
             errors.append("Program path is required")
         }

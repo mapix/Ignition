@@ -10,13 +10,16 @@
 		00768A6B4AC1C35B9C68D30A /* HealthMonitorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CC6B19EF6AF25E5A85912BA /* HealthMonitorService.swift */; };
 		01BFA80CD2B3735F0D481BF0 /* LogTailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D94BB0B348A4D7C7B5C54131 /* LogTailService.swift */; };
 		0265FB199AAEAD04FCA63C23 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = A24F329CFD41100FEB8747F4 /* libsqlite3.tbd */; };
+		14AA019EAA3ADA05280F83BF /* ServiceDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C1DCE7CE6EAFAD5D2B122AC /* ServiceDiagnostics.swift */; };
 		1D8218190ED5C4912DE874B8 /* LogViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49743BA2D88A1D77A79C13F6 /* LogViewerView.swift */; };
 		1D93C1C342F2B80CC198E74D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4F06BF8011D19F52B6FF9326 /* Assets.xcassets */; };
 		21D3C484E9938FD2A30DCF74 /* LaunchDService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F41472089A9FDB01A4D625B0 /* LaunchDService.swift */; };
 		22288258B58AE11D45A3D27D /* LaunchAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF74C69DDBD6CB764AFB6A1E /* LaunchAgent.swift */; };
 		2E8AFCBF3063CD538B247DFA /* PlistWriteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5008A11091E3F5BE44117CA5 /* PlistWriteService.swift */; };
 		37750B80F2ED4B248A2F7AE6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ECC706F905DF1831C6ED88B /* ContentView.swift */; };
+		390671189347FBCE08E67DCC /* ServiceManagementViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 375D10F038AA7A2679E9584D /* ServiceManagementViews.swift */; };
 		4200F9BAD08CD8BE4E167F3B /* PlistEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B162856F5C6A0AB9BF7EBAF /* PlistEditorView.swift */; };
+		426E7A2D6CFE93A90D2D066F /* ServiceTagService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DE68389B8E605425FF4F60 /* ServiceTagService.swift */; };
 		4B4D41C222E8A5B1B51DA082 /* CreateAgentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 730F97498E7996FE333520A3 /* CreateAgentView.swift */; };
 		519185CB8552CA586F0BB6F8 /* AgentListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5371BDB668B6C3A39BF288B /* AgentListView.swift */; };
 		5A97F5EE8F6B799CC89B97C5 /* HealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54CA7C79FE74C965811F733B /* HealthDashboardView.swift */; };
@@ -25,17 +28,26 @@
 		7A147EEA8244CC0C15B39B7D /* ActivityHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CD064544D01095D11CEF8FA /* ActivityHistoryView.swift */; };
 		8143DCDC5DC1A6A03DF1B936 /* AgentRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD2998A67A713E55ABDE4607 /* AgentRowView.swift */; };
 		8551CD8DCB8F91AAB73ABB54 /* AgentDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60737E7F30D81EE8C740920 /* AgentDetailView.swift */; };
+		872987675C6DC44C3E57B295 /* ProcessDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B539B267346428F3D5799A58 /* ProcessDetailsView.swift */; };
 		8E8D663133B5457FF4204B7A /* ImportExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ABF8D0CAB1D9BC5F2D1194C /* ImportExportService.swift */; };
+		95F6C515F5F88B03FAE19541 /* CommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D75B3536E40D828E42DF067F /* CommandRunner.swift */; };
 		997AC6EA02F4710CAC4B774B /* ActivityHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 653AA7B5875CCB25D308CF66 /* ActivityHistoryService.swift */; };
 		9E67AF34912A24156FDB14EA /* AgentTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84400D0E160C8F6E602EF9C5 /* AgentTemplate.swift */; };
 		B088A9CB21BB2389519FDB8A /* IgnitionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 844B050EB860E8DA9912A7F3 /* IgnitionApp.swift */; };
+		C0DC765D210588D307FA7F1E /* ProcessDetailsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F42B40EC169EAFF2F1A3F45D /* ProcessDetailsService.swift */; };
+		CC49F725874F6F45C2B56089 /* ServiceManagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05D4401367E783BE96EC362 /* ServiceManagement.swift */; };
+		D5032B9CD4D610B5F7E9D243 /* ServiceTag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00EEC59CFEB41E21F4771292 /* ServiceTag.swift */; };
 		D9AC532A757CD03D67EAB589 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8712384CF50A82B4A6824C87 /* NotificationService.swift */; };
+		DA8330823D90B9FC299122B6 /* ServiceTagsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F06BF7ACFA352A69F9023A04 /* ServiceTagsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		00EEC59CFEB41E21F4771292 /* ServiceTag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceTag.swift; sourceTree = "<group>"; };
 		1E2EF98AA608A1E3AC8A4619 /* PlistValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlistValue.swift; sourceTree = "<group>"; };
 		1ECC706F905DF1831C6ED88B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2ABF8D0CAB1D9BC5F2D1194C /* ImportExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportExportService.swift; sourceTree = "<group>"; };
+		375D10F038AA7A2679E9584D /* ServiceManagementViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceManagementViews.swift; sourceTree = "<group>"; };
+		3C1DCE7CE6EAFAD5D2B122AC /* ServiceDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceDiagnostics.swift; sourceTree = "<group>"; };
 		49743BA2D88A1D77A79C13F6 /* LogViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewerView.swift; sourceTree = "<group>"; };
 		4F06BF8011D19F52B6FF9326 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		5008A11091E3F5BE44117CA5 /* PlistWriteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlistWriteService.swift; sourceTree = "<group>"; };
@@ -51,12 +63,18 @@
 		8712384CF50A82B4A6824C87 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		8B162856F5C6A0AB9BF7EBAF /* PlistEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlistEditorView.swift; sourceTree = "<group>"; };
 		A24F329CFD41100FEB8747F4 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		B539B267346428F3D5799A58 /* ProcessDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessDetailsView.swift; sourceTree = "<group>"; };
+		C05D4401367E783BE96EC362 /* ServiceManagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceManagement.swift; sourceTree = "<group>"; };
 		C5371BDB668B6C3A39BF288B /* AgentListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentListView.swift; sourceTree = "<group>"; };
 		D02380B825893CEE88B0D323 /* Ignition.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ignition.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D75B3536E40D828E42DF067F /* CommandRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandRunner.swift; sourceTree = "<group>"; };
 		D94BB0B348A4D7C7B5C54131 /* LogTailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogTailService.swift; sourceTree = "<group>"; };
 		DD2998A67A713E55ABDE4607 /* AgentRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRowView.swift; sourceTree = "<group>"; };
 		DF74C69DDBD6CB764AFB6A1E /* LaunchAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAgent.swift; sourceTree = "<group>"; };
+		E2DE68389B8E605425FF4F60 /* ServiceTagService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceTagService.swift; sourceTree = "<group>"; };
+		F06BF7ACFA352A69F9023A04 /* ServiceTagsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceTagsView.swift; sourceTree = "<group>"; };
 		F41472089A9FDB01A4D625B0 /* LaunchDService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchDService.swift; sourceTree = "<group>"; };
+		F42B40EC169EAFF2F1A3F45D /* ProcessDetailsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessDetailsService.swift; sourceTree = "<group>"; };
 		F60737E7F30D81EE8C740920 /* AgentDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDetailView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -85,6 +103,9 @@
 				49743BA2D88A1D77A79C13F6 /* LogViewerView.swift */,
 				6B1DD42E6067C6CEF5416742 /* MenuBarView.swift */,
 				8B162856F5C6A0AB9BF7EBAF /* PlistEditorView.swift */,
+				B539B267346428F3D5799A58 /* ProcessDetailsView.swift */,
+				375D10F038AA7A2679E9584D /* ServiceManagementViews.swift */,
+				F06BF7ACFA352A69F9023A04 /* ServiceTagsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -116,6 +137,8 @@
 				84400D0E160C8F6E602EF9C5 /* AgentTemplate.swift */,
 				DF74C69DDBD6CB764AFB6A1E /* LaunchAgent.swift */,
 				1E2EF98AA608A1E3AC8A4619 /* PlistValue.swift */,
+				C05D4401367E783BE96EC362 /* ServiceManagement.swift */,
+				00EEC59CFEB41E21F4771292 /* ServiceTag.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -141,12 +164,16 @@
 			isa = PBXGroup;
 			children = (
 				653AA7B5875CCB25D308CF66 /* ActivityHistoryService.swift */,
+				D75B3536E40D828E42DF067F /* CommandRunner.swift */,
 				5CC6B19EF6AF25E5A85912BA /* HealthMonitorService.swift */,
 				2ABF8D0CAB1D9BC5F2D1194C /* ImportExportService.swift */,
 				F41472089A9FDB01A4D625B0 /* LaunchDService.swift */,
 				D94BB0B348A4D7C7B5C54131 /* LogTailService.swift */,
 				8712384CF50A82B4A6824C87 /* NotificationService.swift */,
 				5008A11091E3F5BE44117CA5 /* PlistWriteService.swift */,
+				F42B40EC169EAFF2F1A3F45D /* ProcessDetailsService.swift */,
+				3C1DCE7CE6EAFAD5D2B122AC /* ServiceDiagnostics.swift */,
+				E2DE68389B8E605425FF4F60 /* ServiceTagService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -188,7 +215,6 @@
 				};
 			};
 			buildConfigurationList = 8CA3C9D0A200253AA5E92539 /* Build configuration list for PBXProject "Ignition" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -198,6 +224,7 @@
 			mainGroup = AEC4958499CEA65CBB9E008B;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
+			productRefGroup = A8836C453FED40F0B34DC6A8 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -228,6 +255,7 @@
 				519185CB8552CA586F0BB6F8 /* AgentListView.swift in Sources */,
 				8143DCDC5DC1A6A03DF1B936 /* AgentRowView.swift in Sources */,
 				9E67AF34912A24156FDB14EA /* AgentTemplate.swift in Sources */,
+				95F6C515F5F88B03FAE19541 /* CommandRunner.swift in Sources */,
 				37750B80F2ED4B248A2F7AE6 /* ContentView.swift in Sources */,
 				4B4D41C222E8A5B1B51DA082 /* CreateAgentView.swift in Sources */,
 				5A97F5EE8F6B799CC89B97C5 /* HealthDashboardView.swift in Sources */,
@@ -243,6 +271,14 @@
 				4200F9BAD08CD8BE4E167F3B /* PlistEditorView.swift in Sources */,
 				5D0F2D8FD2385EF26AFDB4AC /* PlistValue.swift in Sources */,
 				2E8AFCBF3063CD538B247DFA /* PlistWriteService.swift in Sources */,
+				C0DC765D210588D307FA7F1E /* ProcessDetailsService.swift in Sources */,
+				872987675C6DC44C3E57B295 /* ProcessDetailsView.swift in Sources */,
+				14AA019EAA3ADA05280F83BF /* ServiceDiagnostics.swift in Sources */,
+				CC49F725874F6F45C2B56089 /* ServiceManagement.swift in Sources */,
+				390671189347FBCE08E67DCC /* ServiceManagementViews.swift in Sources */,
+				D5032B9CD4D610B5F7E9D243 /* ServiceTag.swift in Sources */,
+				426E7A2D6CFE93A90D2D066F /* ServiceTagService.swift in Sources */,
+				DA8330823D90B9FC299122B6 /* ServiceTagsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -318,7 +354,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Ignition/Info.plist;
@@ -327,7 +363,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.acelogic.ignition;
 				SDKROOT = macosx;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -341,7 +377,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Ignition/Info.plist;
@@ -350,7 +386,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.acelogic.ignition;
 				SDKROOT = macosx;
 				SWIFT_STRICT_CONCURRENCY = complete;

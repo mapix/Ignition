@@ -31,6 +31,10 @@ struct LogViewerView: View {
                 }
 
                 Spacer()
+                Button(logService.isActive ? "Pause" : "Resume") {
+                    if logService.isActive { logService.stop() }
+                    else { logService.startTailing(stdoutPath: stdoutPath, stderrPath: stderrPath) }
+                }.controlSize(.small)
 
                 TextField("Filter...", text: $searchText)
                     .textFieldStyle(.roundedBorder)
@@ -50,7 +54,7 @@ struct LogViewerView: View {
                     Image(systemName: "trash")
                 }
                 .controlSize(.small)
-                .help("Clear logs")
+                .help("Clear the displayed lines; the log file is retained")
 
                 Button {
                     copyLogs()

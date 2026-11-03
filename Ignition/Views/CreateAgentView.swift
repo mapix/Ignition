@@ -108,6 +108,15 @@ struct CreateAgentView: View {
     private var configureStep: some View {
         Form {
             Section("Identity") {
+                Picker("Domain", selection: $formData.domain) {
+                    ForEach([AgentDomain.userAgents, .globalAgents, .globalDaemons]) { domain in
+                        Text(domain.rawValue).tag(domain)
+                    }
+                }
+                if formData.domain != .userAgents {
+                    Text("Creating this service requires macOS administrator authorization.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 TextField("Label (reverse-DNS)", text: $formData.label)
                     .textFieldStyle(.roundedBorder)
             }
@@ -223,6 +232,8 @@ struct CreateAgentView: View {
                 .font(.headline)
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
+            Text("\(formData.domain.rawValue) · \(formData.domain == .userAgents ? manager.userAgentsDirectory : formData.domain.path)/\(formData.label).plist")
+                .font(.caption).foregroundStyle(.secondary).textSelection(.enabled).padding(.horizontal, 20)
 
             // Preview XML
             ScrollView {

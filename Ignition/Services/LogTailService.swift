@@ -1,14 +1,12 @@
 import Foundation
+import Combine
 
 struct LogLine: Identifiable, Equatable {
     let id = UUID()
     let text: String
     let isError: Bool
     let timestamp: Date
-
-    static func == (lhs: LogLine, rhs: LogLine) -> Bool {
-        lhs.id == rhs.id
-    }
+    static func == (lhs: LogLine, rhs: LogLine) -> Bool { lhs.id == rhs.id }
 }
 
 @MainActor
@@ -17,13 +15,16 @@ class LogTailService: ObservableObject {
     @Published var isActive = false
     @Published var errorMessage: String?
 
-    private var stdoutSource: DispatchSourceFileSystemObject?
-    private var stderrSource: DispatchSourceFileSystemObject?
-    private var stdoutHandle: FileHandle?
-    private var stderrHandle: FileHandle?
-    private var stdoutFD: Int32 = -1
-    private var stderrFD: Int32 = -1
-
+    private struct WatchedFile {
+        let path: String
+        let handle: FileHandle
+        let source: DispatchSourceFileSystemObject
+        let generation: UUID
+        var tail = Data()
+    }
+    private var watched: [Bool: WatchedFile] = [:]
+    private var session = UUID()
+    private var retryTasks: [Bool: Task<Void, Never>] = [:]
     private let maxLines = 5000
 
     func startTailing(stdoutPath: String?, stderrPath: String?) {
@@ -31,148 +32,89 @@ class LogTailService: ObservableObject {
         lines = []
         errorMessage = nil
         isActive = true
-
-        if let path = stdoutPath {
-            startTailingFile(path: path, isError: false)
-        }
-        if let path = stderrPath {
-            startTailingFile(path: path, isError: true)
-        }
-
-        if stdoutSource == nil && stderrSource == nil {
-            errorMessage = "Could not open any log files"
+        if let path = stdoutPath { openFile(path: path, isError: false) }
+        if let path = stderrPath { openFile(path: path, isError: true) }
+        if watched.isEmpty {
+            errorMessage = "Log files are unavailable. Start the service or create the configured log paths, then resume."
             isActive = false
         }
     }
 
     func stop() {
-        stdoutSource?.cancel()
-        stderrSource?.cancel()
-        stdoutSource = nil
-        stderrSource = nil
-
-        stdoutHandle?.closeFile()
-        stderrHandle?.closeFile()
-        stdoutHandle = nil
-        stderrHandle = nil
-
-        if stdoutFD >= 0 { close(stdoutFD); stdoutFD = -1 }
-        if stderrFD >= 0 { close(stderrFD); stderrFD = -1 }
-
+        session = UUID()
+        retryTasks.values.forEach { $0.cancel() }
+        retryTasks.removeAll()
+        for file in watched.values {
+            file.source.cancel() // Cancel handler exclusively owns the monitoring descriptor.
+            try? file.handle.close()
+        }
+        watched.removeAll()
         isActive = false
     }
+    func clear() { lines = [] }
 
-    func clear() {
-        lines = []
-    }
-
-    private func startTailingFile(path: String, isError: Bool) {
-        let expandedPath = NSString(string: path).expandingTildeInPath
-        let fm = FileManager.default
-
-        guard fm.fileExists(atPath: expandedPath),
-              fm.isReadableFile(atPath: expandedPath) else {
-            return
-        }
-
-        guard let handle = FileHandle(forReadingAtPath: expandedPath) else {
-            return
-        }
-
-        // Seek to last 100KB for initial content
-        let fileSize = handle.seekToEndOfFile()
-        let seekOffset = fileSize > 102400 ? fileSize - 102400 : 0
-        handle.seek(toFileOffset: seekOffset)
-
-        // Read initial content
-        let initialData = handle.readDataToEndOfFile()
-        if let text = String(data: initialData, encoding: .utf8) {
-            var initialLines = text.components(separatedBy: .newlines)
-            // If we seeked past the start, drop partial first line
-            if seekOffset > 0 {
-                initialLines = Array(initialLines.dropFirst())
-            }
-            for line in initialLines where !line.isEmpty {
-                appendLine(line, isError: isError)
-            }
-        }
-
-        // Set up kqueue monitoring
-        let fd = Darwin.open(expandedPath, O_RDONLY | O_EVTONLY)
-        guard fd >= 0 else { return }
-
-        let source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fd,
-            eventMask: [.extend, .delete, .rename],
-            queue: .global(qos: .userInitiated)
-        )
-
+    private func openFile(path: String, isError: Bool) {
+        let expanded = NSString(string: path).expandingTildeInPath
+        let url = URL(fileURLWithPath: expanded)
+        guard (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true,
+              let handle = try? FileHandle(forReadingFrom: url) else { return }
+        let fd = Darwin.open(expanded, O_EVTONLY)
+        guard fd >= 0 else { try? handle.close(); return }
+        let generation = UUID()
+        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd,
+            eventMask: [.write, .extend, .delete, .rename], queue: .main)
+        source.setCancelHandler { Darwin.close(fd) }
+        watched[isError] = WatchedFile(path: expanded, handle: handle, source: source, generation: generation)
+        do {
+            let size = try handle.seekToEnd()
+            try handle.seek(toOffset: size > 102400 ? size - 102400 : 0)
+            read(file: watched[isError]!, isError: isError, dropFirst: size > 102400)
+        } catch { errorMessage = error.localizedDescription }
         source.setEventHandler { [weak self] in
-            let flags = source.data
-            if flags.contains(.delete) || flags.contains(.rename) {
-                // File rotated — re-open after brief delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self?.handleFileRotation(path: expandedPath, isError: isError)
-                }
-                return
-            }
-
-            let newData = handle.readDataToEndOfFile()
-            if let text = String(data: newData, encoding: .utf8) {
-                let newLines = text.components(separatedBy: .newlines)
-                Task { @MainActor [weak self] in
-                    for line in newLines where !line.isEmpty {
-                        self?.appendLine(line, isError: isError)
-                    }
-                }
+            Task { @MainActor [weak self] in
+                guard let self, let file = self.watched[isError], file.generation == generation, self.isActive else { return }
+                if source.data.contains(.delete) || source.data.contains(.rename) {
+                    self.rotate(file: file, isError: isError)
+                } else { self.read(file: file, isError: isError) }
             }
         }
-
-        source.setCancelHandler {
-            Darwin.close(fd)
-        }
-
         source.resume()
-
-        if isError {
-            stderrSource = source
-            stderrHandle = handle
-            stderrFD = fd
-        } else {
-            stdoutSource = source
-            stdoutHandle = handle
-            stdoutFD = fd
-        }
     }
 
-    private func handleFileRotation(path: String, isError: Bool) {
-        if isError {
-            stderrSource?.cancel()
-            stderrSource = nil
-            stderrHandle?.closeFile()
-            stderrHandle = nil
-        } else {
-            stdoutSource?.cancel()
-            stdoutSource = nil
-            stdoutHandle?.closeFile()
-            stdoutHandle = nil
-        }
-        // Try to reopen
-        startTailingFile(path: path, isError: isError)
+    private func read(file: WatchedFile, isError: Bool, dropFirst: Bool = false) {
+        do {
+            let offset = try file.handle.offset()
+            let size = try file.handle.seekToEnd()
+            var wasRewritten = size < offset
+            if !wasRewritten && !file.tail.isEmpty && offset >= UInt64(file.tail.count) {
+                try file.handle.seek(toOffset: offset - UInt64(file.tail.count))
+                let checkpoint = try file.handle.read(upToCount: file.tail.count)
+                wasRewritten = checkpoint != file.tail
+            }
+            try file.handle.seek(toOffset: wasRewritten ? 0 : offset)
+            guard let data = try file.handle.read(upToCount: 512_000), !data.isEmpty else { return }
+            watched[isError]?.tail = Data((wasRewritten ? data : file.tail + data).suffix(64))
+            var entries = String(decoding: data, as: UTF8.self).components(separatedBy: .newlines)
+            if dropFirst { entries = Array(entries.dropFirst()) }
+            lines.append(contentsOf: entries.filter { !$0.isEmpty }.map { LogLine(text: $0, isError: isError, timestamp: Date()) })
+            if lines.count > maxLines { lines.removeFirst(lines.count - maxLines) }
+        } catch { errorMessage = "Log read failed: \(error.localizedDescription)" }
     }
 
-    private func appendLine(_ text: String, isError: Bool) {
-        let line = LogLine(text: text, isError: isError, timestamp: Date())
-        lines.append(line)
-        if lines.count > maxLines {
-            lines.removeFirst(lines.count - maxLines)
+    private func rotate(file: WatchedFile, isError: Bool) {
+        watched.removeValue(forKey: isError)
+        file.source.cancel()
+        try? file.handle.close()
+        let expectedSession = session
+        retryTasks[isError]?.cancel()
+        retryTasks[isError] = Task { @MainActor [weak self] in
+            for _ in 0..<20 {
+                try? await Task.sleep(for: .milliseconds(250))
+                guard !Task.isCancelled, let self, self.session == expectedSession, self.isActive else { return }
+                self.openFile(path: file.path, isError: isError)
+                if self.watched[isError] != nil { return }
+            }
+            self?.errorMessage = "Rotated log did not reappear. Resume log following to retry."
         }
-    }
-
-    deinit {
-        stdoutSource?.cancel()
-        stderrSource?.cancel()
-        if stdoutFD >= 0 { Darwin.close(stdoutFD) }
-        if stderrFD >= 0 { Darwin.close(stderrFD) }
     }
 }

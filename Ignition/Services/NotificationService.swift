@@ -19,7 +19,7 @@ class NotificationService: ObservableObject {
         }
     }
 
-    private var monitoredLabels: Set<String> = []
+    private var deliveredEventIDs: Set<Int64> = []
 
     init() {
         isEnabled = UserDefaults.standard.bool(forKey: "notificationsEnabled")
@@ -44,7 +44,10 @@ class NotificationService: ObservableObject {
     func handleEvent(_ event: ActivityEvent, pinnedLabels: Set<String>) {
         guard isEnabled else { return }
         // Only notify for pinned agents
-        guard pinnedLabels.contains(event.label) else { return }
+        guard pinnedLabels.contains(event.serviceID ?? event.label) else { return }
+        guard !deliveredEventIDs.contains(event.id) else { return }
+        deliveredEventIDs.insert(event.id)
+        if deliveredEventIDs.count > 500 { deliveredEventIDs = Set(deliveredEventIDs.sorted().suffix(250)) }
 
         switch event.eventType {
         case .crashed:

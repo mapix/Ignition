@@ -5,6 +5,11 @@ struct ImportExportService {
 
     /// Export agent plists to a directory as a bundle.
     static func exportAgents(_ agents: [LaunchAgent], to directory: URL) throws -> URL {
+        let exportable = agents.filter(\.hasPlist)
+        guard !exportable.isEmpty else { throw PlistWriteError(message: "No standalone service plists to export.") }
+        for agent in exportable {
+            try PlistWriteService.validateLabel(agent.label)
+        }
         let fm = FileManager.default
         let bundleName = "Ignition-Export-\(dateString())"
         let bundleURL = directory.appendingPathComponent(bundleName, isDirectory: true)
@@ -14,8 +19,9 @@ struct ImportExportService {
         // Write manifest
         var manifest: [[String: String]] = []
 
-        for agent in agents {
-            let fileName = "\(agent.label).plist"
+        for agent in exportable {
+            let domainName = agent.domain.rawValue.replacingOccurrences(of: " ", with: "-")
+            let fileName = "\(domainName)-\(agent.label).plist"
             let destURL = bundleURL.appendingPathComponent(fileName)
 
             // Copy plist
@@ -50,7 +56,7 @@ struct ImportExportService {
     }
 
     /// Export a single agent plist.
-    static func exportSingleAgent(_ agent: LaunchAgent) {
+    @MainActor static func exportSingleAgent(_ agent: LaunchAgent) {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = "\(agent.label).plist"
         panel.allowedContentTypes = [.xml]
@@ -70,7 +76,7 @@ struct ImportExportService {
     }
 
     /// Import plist files, returning the parsed dictionaries and intended paths.
-    static func importPlists() -> [(dict: [String: Any], suggestedLabel: String)]? {
+    @MainActor static func importPlists() -> [(dict: [String: Any], suggestedLabel: String)]? {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
@@ -107,14 +113,15 @@ struct ImportExportService {
     }
 
     /// Backup all user agents to a timestamped directory.
-    static func backupUserAgents() throws -> URL {
+    static func backupUserAgents(from userAgentsPath: String = AgentDomain.userAgents.path,
+                                 storageDirectory: URL? = nil) throws -> URL {
         let fm = FileManager.default
-        let backupDir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("Ignition/Backups/\(dateString())", isDirectory: true)
+        let storage = storageDirectory ?? fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("Ignition", isDirectory: true)
+        let backupDir = storage.appendingPathComponent("Backups/\(dateString())", isDirectory: true)
 
         try fm.createDirectory(at: backupDir, withIntermediateDirectories: true)
 
-        let userAgentsPath = AgentDomain.userAgents.path
         guard let files = try? fm.contentsOfDirectory(atPath: userAgentsPath) else {
             return backupDir
         }

@@ -14,6 +14,8 @@ class HealthMonitorService: ObservableObject {
     @Published var crashLoopLabels: [String: Int] = [:]  // label → crash count in last hour
 
     private var pollTimer: Timer?
+    var trackedAgents: [LaunchAgent] = []
+    private var polling = false
 
     func startMonitoring() {
         pollTimer?.invalidate()
@@ -46,9 +48,10 @@ class HealthMonitorService: ObservableObject {
             problems.append((label, "Crash looping (\(count)x in last hour)"))
         }
 
-        for (_, info) in healthInfo where info.cpuPercent > 90 {
-            if !problems.contains(where: { $0.0 == info.label }) {
-                problems.append((info.label, String(format: "High CPU: %.0f%%", info.cpuPercent)))
+        for agent in trackedAgents {
+            if let pid = agent.pid, let info = statsForPID(pid), info.cpuPercent > 90,
+               !problems.contains(where: { $0.0 == agent.id }) {
+                problems.append((agent.id, String(format: "High CPU: %.0f%%", info.cpuPercent)))
             }
         }
 
@@ -56,6 +59,9 @@ class HealthMonitorService: ObservableObject {
     }
 
     private func pollProcessStats() async {
+        guard !polling else { return }
+        polling = true
+        defer { polling = false }
         let result = await runPS()
         var newInfo: [String: AgentHealthInfo] = [:]
 
@@ -87,25 +93,7 @@ class HealthMonitorService: ObservableObject {
     }
 
     private func runPS() async -> String {
-        await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .utility).async {
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: "/bin/ps")
-                process.arguments = ["-eo", "pid,pcpu,rss,comm"]
-
-                let pipe = Pipe()
-                process.standardOutput = pipe
-                process.standardError = FileHandle.nullDevice
-
-                do {
-                    try process.run()
-                    process.waitUntilExit()
-                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                    continuation.resume(returning: String(data: data, encoding: .utf8) ?? "")
-                } catch {
-                    continuation.resume(returning: "")
-                }
-            }
-        }
+        let result = await CommandRunner.run("/bin/ps", ["-eo", "pid,pcpu,rss,comm"])
+        return result.success ? result.output : ""
     }
 }

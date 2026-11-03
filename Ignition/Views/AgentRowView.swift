@@ -54,6 +54,13 @@ struct AgentRowView: View {
                         TagView(text: "Interval", color: .teal)
                     }
                 }
+                let tags = manager.tags(for: agent)
+                if !tags.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(tags.prefix(3)) { tag in ServiceTagPill(tag: tag) }
+                        if tags.count > 3 { Text("+\(tags.count - 3)").font(.caption2).foregroundStyle(.secondary) }
+                    }
+                }
             }
 
             Spacer()
