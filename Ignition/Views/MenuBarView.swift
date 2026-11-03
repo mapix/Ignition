@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var manager: LaunchAgentManager
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -53,6 +54,7 @@ struct MenuBarView: View {
             // Footer actions
             HStack {
                 Button("Open Ignition") {
+                    openWindow(id: "main")
                     NSApp.activate(ignoringOtherApps: true)
                     if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
                         window.makeKeyAndOrderFront(nil)
@@ -72,6 +74,9 @@ struct MenuBarView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
+            if let error = manager.errorMessage {
+                Text(error).font(.caption).foregroundStyle(.red).padding(12)
+            }
         }
         .frame(width: 300)
     }
@@ -113,9 +118,6 @@ struct MenuBarAgentRow: View {
                             if shouldLoad {
                                 _ = await manager.loadAgent(agent)
                             } else {
-                                if agent.status == .running {
-                                    _ = await manager.stopAgent(agent)
-                                }
                                 _ = await manager.unloadAgent(agent)
                             }
                             isToggling = false
@@ -125,12 +127,14 @@ struct MenuBarAgentRow: View {
                 .toggleStyle(.switch)
                 .controlSize(.mini)
                 .labelsHidden()
+                .disabled(!agent.canControl || agent.isDisabled || (!agent.hasPlist && agent.status == .unloaded))
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 6)
         .background(isHovered ? Color.gray.opacity(0.1) : .clear)
         .onHover { isHovered = $0 }
+        .contextMenu { AgentContextMenu(agent: agent).environmentObject(manager) }
     }
 
     private var statusColor: Color {

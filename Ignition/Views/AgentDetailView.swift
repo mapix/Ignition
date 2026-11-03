@@ -46,11 +46,14 @@ struct AgentDetailView: View {
                 // Activity history section
                 historySection
                     .padding(24)
+                OperationHistoryView(serviceID: agent.id)
+                    .padding(24)
 
                 Divider()
 
-                plistEditorSection
-                    .padding(24)
+                if agent.hasPlist {
+                    plistEditorSection.padding(24)
+                }
             }
             .frame(minWidth: 360)
         }
@@ -103,7 +106,7 @@ struct AgentDetailView: View {
                 Image(systemName: "doc.text")
                     .foregroundStyle(.secondary)
                     .font(.caption)
-                Text(agent.plistPath)
+                Text(agent.hasPlist ? agent.plistPath : agent.serviceTarget)
                     .font(.system(.caption))
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -114,66 +117,8 @@ struct AgentDetailView: View {
 
     // MARK: - Actions
 
-    @State private var actionInProgress: String?
-
     private var actionsSection: some View {
-        HStack(spacing: 12) {
-            if agent.status == .running {
-                ActionButton(title: "Stop", icon: "stop.fill", color: .red, isLoading: actionInProgress == "stop") {
-                    actionInProgress = "stop"
-                    Task {
-                        await manager.stopAgent(agent)
-                        withAnimation { actionInProgress = nil }
-                    }
-                }
-                .transition(.scale.combined(with: .opacity))
-            }
-
-            if agent.status == .unloaded {
-                ActionButton(title: "Load", icon: "arrow.down.circle.fill", color: .blue, isLoading: actionInProgress == "load") {
-                    actionInProgress = "load"
-                    Task {
-                        await manager.loadAgent(agent)
-                        withAnimation { actionInProgress = nil }
-                    }
-                }
-                .transition(.scale.combined(with: .opacity))
-            } else {
-                ActionButton(title: "Unload", icon: "arrow.up.circle.fill", color: .orange, isLoading: actionInProgress == "unload") {
-                    actionInProgress = "unload"
-                    Task {
-                        await manager.unloadAgent(agent)
-                        withAnimation { actionInProgress = nil }
-                    }
-                }
-                .transition(.scale.combined(with: .opacity))
-            }
-
-            if agent.status == .loaded {
-                ActionButton(title: "Start", icon: "play.fill", color: .green, isLoading: actionInProgress == "start") {
-                    actionInProgress = "start"
-                    Task {
-                        await manager.startAgent(agent)
-                        withAnimation { actionInProgress = nil }
-                    }
-                }
-                .transition(.scale.combined(with: .opacity))
-            }
-
-            Divider()
-                .frame(height: 24)
-
-            ActionButton(title: "Finder", icon: "folder.fill", color: .gray) {
-                manager.revealInFinder(agent)
-            }
-
-            ActionButton(title: "Edit", icon: "pencil", color: .gray) {
-                manager.openInEditor(agent)
-            }
-
-            Spacer()
-        }
-        .animation(.spring(response: 0.35, dampingFraction: 0.7), value: agent.status)
+        ServiceControlBar(agent: agent)
     }
 
     // MARK: - Properties
@@ -195,7 +140,7 @@ struct AgentDetailView: View {
                 )
             }
 
-            HStack(spacing: 12) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 90))], spacing: 10) {
                 PropertyChip(title: "KeepAlive", value: agent.isKeepAlive ? "Yes" : "No", icon: "heart.fill")
                 PropertyChip(title: "Run at Load", value: agent.runAtLoad ? "Yes" : "No", icon: "play.circle.fill")
                 PropertyChip(title: "Disabled", value: agent.isDisabled ? "Yes" : "No", icon: "nosign")
@@ -289,7 +234,7 @@ struct AgentDetailView: View {
             .buttonStyle(.plain)
 
             if showingHistory {
-                ActivityHistoryView(agentLabel: agent.label)
+                ActivityHistoryView(agentLabel: agent.id)
             }
         }
     }
@@ -297,7 +242,7 @@ struct AgentDetailView: View {
     // MARK: - Plist Editor
 
     private var isReadOnly: Bool {
-        !agent.domain.isEditable
+        !agent.canDelete
     }
 
     private var plistEditorSection: some View {
@@ -336,6 +281,9 @@ struct AgentDetailView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
+                    .disabled(saving)
+                    Button("Save & Reload") { savePlist(reload: true) }
+                        .buttonStyle(.bordered).controlSize(.small).disabled(saving)
                 }
 
                 if showSaveSuccess {
@@ -361,21 +309,22 @@ struct AgentDetailView: View {
         }
     }
 
-    private func savePlist() {
-        let dict = plistValue.toAny() as? [String: Any] ?? [:]
-        let requiresAdmin = agent.domain == .globalAgents || agent.domain == .globalDaemons
+    @State private var saving = false
 
-        do {
-            try PlistWriteService.write(dict, to: agent.plistPath, requiresAdmin: requiresAdmin)
-            isDirty = false
-            saveError = nil
-            withAnimation { showSaveSuccess = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                withAnimation { showSaveSuccess = false }
+    private func savePlist(reload: Bool = false) {
+        guard !saving else { return }
+        let dict = plistValue.toAny() as? [String: Any] ?? [:]
+        saving = true
+        Task {
+            let saved = await manager.saveConfiguration(dict, for: agent, reload: reload)
+            saving = false
+            if saved {
+                isDirty = false
+                saveError = nil
+                showSaveSuccess = true
+            } else {
+                saveError = manager.errorMessage
             }
-            Task { await manager.reloadPlistContents(for: agent) }
-        } catch {
-            saveError = error.localizedDescription
         }
     }
 

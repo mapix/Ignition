@@ -8,6 +8,7 @@ struct ActivityEvent: Identifiable, Equatable {
     let exitCode: Int?
     let timestamp: Date
     let detail: String?
+    var serviceID: String? = nil
 
     enum EventType: String {
         case started = "started"
@@ -45,13 +46,20 @@ class ActivityHistoryService: ObservableObject {
     nonisolated(unsafe) private var db: OpaquePointer?
     private let dbPath: String
 
+    private var transient: sqlite3_destructor_type { unsafeBitCast(-1, to: sqlite3_destructor_type.self) }
+
     // Track previous state to detect transitions
     private var previousStates: [String: AgentStatus] = [:]
     private var previousPIDs: [String: Int] = [:]
+    private var expectedStops: [String: Int] = [:]
 
-    init() {
+    func expectStop(serviceID: String, pid: Int) { expectedStops[serviceID] = pid }
+    func cancelExpectedStop(serviceID: String) { expectedStops.removeValue(forKey: serviceID) }
+
+    init(storageDirectory: URL? = nil) {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = appSupport.appendingPathComponent("Ignition", isDirectory: true)
+        let testStorage = ProcessInfo.processInfo.environment["IGNITION_TEST_STORAGE_DIRECTORY"].map { URL(fileURLWithPath: $0) }
+        let dir = storageDirectory ?? testStorage ?? appSupport.appendingPathComponent("Ignition", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         dbPath = dir.appendingPathComponent("activity.db").path
         openDatabase()
@@ -59,56 +67,64 @@ class ActivityHistoryService: ObservableObject {
         loadRecentEvents()
     }
 
-    func recordEvent(label: String, type: ActivityEvent.EventType, exitCode: Int? = nil, detail: String? = nil) {
+    func recordEvent(label: String, serviceID: String? = nil, type: ActivityEvent.EventType, exitCode: Int? = nil, detail: String? = nil) {
         let now = Date()
-        insertEvent(label: label, type: type, exitCode: exitCode, timestamp: now, detail: detail)
+        insertEvent(label: label, serviceID: serviceID, type: type, exitCode: exitCode, timestamp: now, detail: detail)
         loadRecentEvents()
     }
 
     func detectChanges(agents: [LaunchAgent]) {
-        for agent in agents {
-            let prev = previousStates[agent.label]
-            let prevPID = previousPIDs[agent.label]
+        for agent in agents where agent.status != .unknown {
+            let prev = previousStates[agent.id]
+            let prevPID = previousPIDs[agent.id]
+            let expectedStop = prevPID != nil && expectedStops[agent.id] == prevPID
+            if prev == .running && (agent.status != .running || agent.pid != prevPID) {
+                expectedStops.removeValue(forKey: agent.id)
+            }
 
             if let prev = prev {
                 // Detect transitions
                 if prev != .running && agent.status == .running {
-                    recordEvent(label: agent.label, type: .started, detail: agent.pid.map { "PID \($0)" })
+                    recordEvent(label: agent.label, serviceID: agent.id, type: .started, detail: agent.pid.map { "PID \($0)" })
                 } else if prev == .running && agent.status != .running {
-                    if let exit = agent.lastExitStatus, exit != 0 {
-                        recordEvent(label: agent.label, type: .crashed, exitCode: exit)
+                    if let exit = agent.lastExitStatus, exit != 0, !expectedStop {
+                        recordEvent(label: agent.label, serviceID: agent.id, type: .crashed, exitCode: exit)
                     } else {
-                        recordEvent(label: agent.label, type: .stopped, exitCode: agent.lastExitStatus)
+                        recordEvent(label: agent.label, serviceID: agent.id, type: .stopped, exitCode: agent.lastExitStatus)
                     }
                 } else if prev == .unloaded && agent.status == .loaded {
-                    recordEvent(label: agent.label, type: .loaded)
+                    recordEvent(label: agent.label, serviceID: agent.id, type: .loaded)
                 } else if prev != .unloaded && agent.status == .unloaded {
-                    recordEvent(label: agent.label, type: .unloaded)
+                    recordEvent(label: agent.label, serviceID: agent.id, type: .unloaded)
                 }
                 // Detect PID change (crash-restart)
                 else if agent.status == .running,
                         let newPID = agent.pid, let oldPID = prevPID,
                         newPID != oldPID {
-                    recordEvent(label: agent.label, type: .crashed, exitCode: agent.lastExitStatus, detail: "Restarted: PID \(oldPID) → \(newPID)")
-                    recordEvent(label: agent.label, type: .started, detail: "PID \(newPID)")
+                    if let exit = agent.lastExitStatus, exit != 0, !expectedStop {
+                        recordEvent(label: agent.label, serviceID: agent.id, type: .crashed, exitCode: exit, detail: "PID changed after nonzero exit")
+                    }
+                    recordEvent(label: agent.label, serviceID: agent.id, type: .started, detail: "PID \(newPID)")
                 }
             }
 
-            previousStates[agent.label] = agent.status
-            if let pid = agent.pid { previousPIDs[agent.label] = pid }
+            previousStates[agent.id] = agent.status
+            if let pid = agent.pid { previousPIDs[agent.id] = pid }
         }
     }
 
     func eventsForAgent(_ label: String, limit: Int = 100) -> [ActivityEvent] {
         var events: [ActivityEvent] = []
-        let query = "SELECT id, label, event_type, exit_code, timestamp, detail FROM activity WHERE label = ? ORDER BY timestamp DESC LIMIT ?"
+        let query = "SELECT id, label, event_type, exit_code, timestamp, detail, service_id FROM activity WHERE service_id = ? OR (service_id IS NULL AND label = ?) ORDER BY timestamp DESC LIMIT ?"
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, query, -1, &stmt, nil) == SQLITE_OK else { return [] }
         defer { sqlite3_finalize(stmt) }
 
-        sqlite3_bind_text(stmt, 1, (label as NSString).utf8String, -1, nil)
-        sqlite3_bind_int(stmt, 2, Int32(limit))
+        sqlite3_bind_text(stmt, 1, (label as NSString).utf8String, -1, transient)
+        let legacyLabel = label.split(separator: ":", maxSplits: 1).last.map(String.init) ?? label
+        sqlite3_bind_text(stmt, 2, (legacyLabel as NSString).utf8String, -1, transient)
+        sqlite3_bind_int(stmt, 3, Int32(limit))
 
         while sqlite3_step(stmt) == SQLITE_ROW {
             if let event = eventFromRow(stmt) {
@@ -120,7 +136,7 @@ class ActivityHistoryService: ObservableObject {
 
     func allRecentEvents(limit: Int = 200) -> [ActivityEvent] {
         var events: [ActivityEvent] = []
-        let query = "SELECT id, label, event_type, exit_code, timestamp, detail FROM activity ORDER BY timestamp DESC LIMIT ?"
+        let query = "SELECT id, label, event_type, exit_code, timestamp, detail, service_id FROM activity ORDER BY timestamp DESC LIMIT ?"
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, query, -1, &stmt, nil) == SQLITE_OK else { return [] }
@@ -139,9 +155,9 @@ class ActivityHistoryService: ObservableObject {
     /// Agents that have crashed 3+ times in the last hour
     func crashLoopAgents() -> [String: Int] {
         let query = """
-            SELECT label, COUNT(*) as crash_count FROM activity
+            SELECT COALESCE(service_id, label), COUNT(*) as crash_count FROM activity
             WHERE event_type = 'crashed' AND timestamp > ?
-            GROUP BY label HAVING crash_count >= 3
+            GROUP BY COALESCE(service_id, label) HAVING crash_count >= 3
             ORDER BY crash_count DESC
         """
         var stmt: OpaquePointer?
@@ -169,11 +185,13 @@ class ActivityHistoryService: ObservableObject {
     }
 
     func clearHistory(for label: String) {
-        let query = "DELETE FROM activity WHERE label = ?"
+        let query = "DELETE FROM activity WHERE service_id = ? OR (service_id IS NULL AND label = ?)"
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, query, -1, &stmt, nil) == SQLITE_OK else { return }
         defer { sqlite3_finalize(stmt) }
-        sqlite3_bind_text(stmt, 1, (label as NSString).utf8String, -1, nil)
+        sqlite3_bind_text(stmt, 1, (label as NSString).utf8String, -1, transient)
+        let legacyLabel = label.split(separator: ":", maxSplits: 1).last.map(String.init) ?? label
+        sqlite3_bind_text(stmt, 2, (legacyLabel as NSString).utf8String, -1, transient)
         sqlite3_step(stmt)
         loadRecentEvents()
     }
@@ -200,17 +218,18 @@ class ActivityHistoryService: ObservableObject {
             CREATE INDEX IF NOT EXISTS idx_activity_timestamp ON activity(timestamp);
         """
         sqlite3_exec(db, query, nil, nil, nil)
+        sqlite3_exec(db, "ALTER TABLE activity ADD COLUMN service_id TEXT", nil, nil, nil)
     }
 
-    private func insertEvent(label: String, type: ActivityEvent.EventType, exitCode: Int?, timestamp: Date, detail: String?) {
-        let query = "INSERT INTO activity (label, event_type, exit_code, timestamp, detail) VALUES (?, ?, ?, ?, ?)"
+    private func insertEvent(label: String, serviceID: String?, type: ActivityEvent.EventType, exitCode: Int?, timestamp: Date, detail: String?) {
+        let query = "INSERT INTO activity (label, event_type, exit_code, timestamp, detail, service_id) VALUES (?, ?, ?, ?, ?, ?)"
         var stmt: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, query, -1, &stmt, nil) == SQLITE_OK else { return }
         defer { sqlite3_finalize(stmt) }
 
-        sqlite3_bind_text(stmt, 1, (label as NSString).utf8String, -1, nil)
-        sqlite3_bind_text(stmt, 2, (type.rawValue as NSString).utf8String, -1, nil)
+        sqlite3_bind_text(stmt, 1, (label as NSString).utf8String, -1, transient)
+        sqlite3_bind_text(stmt, 2, (type.rawValue as NSString).utf8String, -1, transient)
         if let code = exitCode {
             sqlite3_bind_int(stmt, 3, Int32(code))
         } else {
@@ -218,11 +237,14 @@ class ActivityHistoryService: ObservableObject {
         }
         sqlite3_bind_double(stmt, 4, timestamp.timeIntervalSince1970)
         if let detail = detail {
-            sqlite3_bind_text(stmt, 5, (detail as NSString).utf8String, -1, nil)
+            sqlite3_bind_text(stmt, 5, (detail as NSString).utf8String, -1, transient)
         } else {
             sqlite3_bind_null(stmt, 5)
         }
 
+        if let serviceID {
+            sqlite3_bind_text(stmt, 6, (serviceID as NSString).utf8String, -1, transient)
+        } else { sqlite3_bind_null(stmt, 6) }
         sqlite3_step(stmt)
     }
 
@@ -244,7 +266,8 @@ class ActivityHistoryService: ObservableObject {
         let timestamp = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 4))
         let detail: String? = sqlite3_column_type(stmt, 5) == SQLITE_NULL ? nil : String(cString: sqlite3_column_text(stmt, 5))
 
-        return ActivityEvent(id: id, label: label, eventType: eventType, exitCode: exitCode, timestamp: timestamp, detail: detail)
+        let serviceID = sqlite3_column_text(stmt, 6).map { String(cString: $0) }
+        return ActivityEvent(id: id, label: label, eventType: eventType, exitCode: exitCode, timestamp: timestamp, detail: detail, serviceID: serviceID)
     }
 
     deinit {

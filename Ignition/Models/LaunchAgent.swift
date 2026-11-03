@@ -1,11 +1,13 @@
 import Foundation
 
-enum AgentDomain: String, CaseIterable, Identifiable {
+enum AgentDomain: String, CaseIterable, Identifiable, Codable, Sendable {
     case userAgents = "User Agents"
     case globalAgents = "Global Agents"
     case globalDaemons = "Global Daemons"
     case systemAgents = "System Agents"
     case systemDaemons = "System Daemons"
+    case userRuntime = "Other User Services"
+    case systemRuntime = "Other System Services"
 
     var id: String { rawValue }
 
@@ -16,6 +18,7 @@ enum AgentDomain: String, CaseIterable, Identifiable {
         case .globalDaemons: return "/Library/LaunchDaemons"
         case .systemAgents: return "/System/Library/LaunchAgents"
         case .systemDaemons: return "/System/Library/LaunchDaemons"
+        case .userRuntime, .systemRuntime: return ""
         }
     }
 
@@ -26,6 +29,8 @@ enum AgentDomain: String, CaseIterable, Identifiable {
         case .globalDaemons: return "gearshape.2.fill"
         case .systemAgents: return "apple.logo"
         case .systemDaemons: return "cpu"
+        case .userRuntime: return "app.connected.to.app.below.fill"
+        case .systemRuntime: return "server.rack"
         }
     }
 
@@ -33,12 +38,23 @@ enum AgentDomain: String, CaseIterable, Identifiable {
         switch self {
         case .userAgents: return true
         case .globalAgents, .globalDaemons: return true
-        case .systemAgents, .systemDaemons: return false
+        case .systemAgents, .systemDaemons, .userRuntime, .systemRuntime: return false
         }
     }
+
+    var launchdDomain: String {
+        switch self {
+        case .globalDaemons, .systemDaemons, .systemRuntime: return "system"
+        default: return "gui/\(getuid())"
+        }
+    }
+
+    var requiresAdmin: Bool { launchdDomain == "system" }
+    var isSystem: Bool { self == .systemAgents || self == .systemDaemons }
+    var isRuntime: Bool { self == .userRuntime || self == .systemRuntime }
 }
 
-enum AgentStatus: String {
+enum AgentStatus: String, Sendable {
     case loaded = "Loaded"
     case unloaded = "Unloaded"
     case running = "Running"
@@ -66,8 +82,8 @@ enum AgentStatus: String {
     }
 }
 
-struct LaunchAgent: Identifiable, Hashable {
-    let id: String
+struct LaunchAgent: Identifiable, Hashable, @unchecked Sendable {
+    var id: String
     let label: String
     let domain: AgentDomain
     let plistPath: String
@@ -75,6 +91,22 @@ struct LaunchAgent: Identifiable, Hashable {
     var pid: Int?
     var lastExitStatus: Int?
     var plistContents: [String: Any]
+    var disabledOverride: Bool? = nil
+    var discoveryError: String? = nil
+
+    var serviceTarget: String { "\(domain.launchdDomain)/\(label)" }
+    var hasPlist: Bool { !plistPath.isEmpty }
+    var canControl: Bool {
+        !domain.isSystem && !label.hasPrefix("com.apple.") && discoveryError == nil
+            && !label.contains("/") && !label.contains("\\")
+            && label.rangeOfCharacter(from: .controlCharacters) == nil
+    }
+    var canDelete: Bool { hasPlist && domain.isEditable && !domain.isSystem && !label.hasPrefix("com.apple.") }
+    var protectionReason: String? {
+        if domain.isSystem || label.hasPrefix("com.apple.") { return "Apple system service — management is read only." }
+        if let discoveryError { return discoveryError }
+        return nil
+    }
 
     var program: String? {
         if let prog = plistContents["Program"] as? String {
@@ -121,7 +153,7 @@ struct LaunchAgent: Identifiable, Hashable {
     }
 
     var isDisabled: Bool {
-        plistContents["Disabled"] as? Bool ?? false
+        disabledOverride ?? (plistContents["Disabled"] as? Bool ?? false)
     }
 
     var displayName: String {
@@ -134,7 +166,10 @@ struct LaunchAgent: Identifiable, Hashable {
     }
 
     static func == (lhs: LaunchAgent, rhs: LaunchAgent) -> Bool {
-        lhs.id == rhs.id
+        lhs.id == rhs.id && lhs.status == rhs.status && lhs.pid == rhs.pid
+            && lhs.lastExitStatus == rhs.lastExitStatus && lhs.isDisabled == rhs.isDisabled
+            && lhs.discoveryError == rhs.discoveryError
+            && NSDictionary(dictionary: lhs.plistContents).isEqual(to: rhs.plistContents)
     }
 
     func hash(into hasher: inout Hasher) {

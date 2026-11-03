@@ -8,7 +8,7 @@ struct IgnitionApp: App {
     @StateObject private var notificationService = NotificationService()
 
     var body: some Scene {
-        WindowGroup {
+        Window("Ignition", id: "main") {
             ContentView()
                 .environmentObject(agentManager)
                 .environmentObject(historyService)
@@ -19,6 +19,7 @@ struct IgnitionApp: App {
                     agentManager.historyService = historyService
                     agentManager.notificationService = notificationService
                     agentManager.healthMonitor = healthMonitor
+                    healthMonitor.startMonitoring()
                 }
         }
         .windowStyle(.automatic)

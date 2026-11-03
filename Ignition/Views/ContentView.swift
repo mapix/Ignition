@@ -10,6 +10,7 @@ struct ContentView: View {
     @State private var showingCreateSheet = false
     @State private var showingImportAlert = false
     @State private var importMessage = ""
+    @State private var showingRecovery = false
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -28,7 +29,7 @@ struct ContentView: View {
             Group {
                 if manager.selectedDomain == nil {
                     HealthDashboardView()
-                } else if let agent = selectedAgent {
+                } else if let selected = selectedAgent, let agent = manager.agents.first(where: { $0.id == selected.id }) {
                     AgentDetailView(agent: agent)
                         .id(agent.id)
                         .transition(.opacity.combined(with: .move(edge: .trailing)))
@@ -54,6 +55,8 @@ struct ContentView: View {
                     Button("Export Selected...") { exportSelected() }
                     Divider()
                     Button("Backup User Agents") { backupUserAgents() }
+                    Divider()
+                    Button("Deleted Services…") { showingRecovery = true }
                 } label: {
                     Image(systemName: "square.and.arrow.up.on.square")
                 }
@@ -64,6 +67,26 @@ struct ContentView: View {
             CreateAgentView()
                 .environmentObject(manager)
         }
+        .sheet(isPresented: $showingRecovery) { DeletedServicesView().environmentObject(manager) }
+        .sheet(item: $manager.processAgent) { agent in
+            ProcessDetailsView(agent: agent).environmentObject(manager)
+        }
+        .sheet(item: $manager.diagnosticsAgent) { agent in DiagnosticsView(agent: agent) }
+        .sheet(isPresented: Binding(get: { !manager.pendingDeletion.isEmpty },
+                                    set: { if !$0 { manager.pendingDeletion = [] } })) {
+            DeleteServicesView(agents: manager.pendingDeletion).environmentObject(manager)
+        }
+        .safeAreaInset(edge: .bottom) {
+            if let message = manager.errorMessage ?? manager.notice {
+                HStack(alignment: .top) {
+                    Image(systemName: manager.errorMessage == nil ? "checkmark.circle" : "exclamationmark.triangle")
+                    ScrollView { Text(message).font(.caption).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+                        .frame(maxHeight: 64)
+                    Button("Dismiss") { manager.errorMessage = nil; manager.notice = nil }.font(.caption)
+                }.padding(10).background(.bar)
+                    .foregroundStyle(manager.errorMessage == nil ? Color.primary : .red)
+            }
+        }
         .alert("Import", isPresented: $showingImportAlert) {
             Button("OK") {}
         } message: {
@@ -72,21 +95,26 @@ struct ContentView: View {
         .task {
             await manager.loadAllAgents()
         }
+        .onChange(of: manager.newlyCreatedID) {
+            selectedAgent = manager.agents.first { $0.id == manager.newlyCreatedID }
+        }
     }
 
     private func importPlists() {
         guard let imports = ImportExportService.importPlists() else { return }
         var imported = 0
+        var failures: [String] = []
         for item in imports {
-            let path = AgentDomain.userAgents.path + "/\(item.suggestedLabel).plist"
+            let path = manager.userAgentsDirectory + "/\(item.suggestedLabel).plist"
             do {
                 try PlistWriteService.create(item.dict, at: path)
                 imported += 1
             } catch {
-                // Skip duplicates
+                failures.append("\(item.suggestedLabel): \(error.localizedDescription)")
             }
         }
         importMessage = "Imported \(imported) of \(imports.count) agent(s)."
+        if !failures.isEmpty { importMessage += "\n" + failures.joined(separator: "\n") }
         showingImportAlert = true
         Task { await manager.loadAllAgents() }
     }
@@ -110,7 +138,8 @@ struct ContentView: View {
 
     private func backupUserAgents() {
         do {
-            let backupURL = try ImportExportService.backupUserAgents()
+            let backupURL = try ImportExportService.backupUserAgents(from: manager.userAgentsDirectory,
+                storageDirectory: manager.recoveryDirectory.deletingLastPathComponent())
             importMessage = "Backed up to:\n\(backupURL.path)"
             showingImportAlert = true
         } catch {
@@ -192,6 +221,9 @@ struct SidebarView: View {
         .onChange(of: sidebarSelection) {
             syncSelection()
         }
+        .onChange(of: manager.selectedDomain) {
+            sidebarSelection = manager.selectedDomain.map(SidebarSelection.domain) ?? .healthDashboard
+        }
         .onAppear {
             syncSelection()
         }
@@ -202,6 +234,8 @@ struct SidebarView: View {
         switch sidebarSelection {
         case .domain(let domain):
             manager.selectedDomain = domain
+            manager.statusFilter = .all
+            selectedAgent = nil
         case .healthDashboard:
             manager.selectedDomain = nil
         case nil:

@@ -32,6 +32,15 @@ At-a-glance system health with overview cards, problem agent detection, and reso
 
 ## Features
 
+### Expanded management in the source build (1.1.0)
+- Domain-aware lifecycle commands, persistent enable/disable overrides, restart, and configuration reload
+- Recoverable service deletion, including malformed plists, with a Deleted Services restore panel
+- Process inspector with parent/child processes, full command, user, start time, CPU/memory, open files, network sockets, and verified signal delivery
+- launchctl state/reason diagnostics with configuration checks and credential masking
+- User/global agent and daemon creation, status filters, bulk operations, and persistent management history
+
+See [implementation and verification](docs/launchd-management-plan.md). This source build does not change the upstream download release linked above.
+
 ### Agent Management
 - **Browse all domains** — User Agents, Global Agents/Daemons, System Agents/Daemons
 - **Start, Stop, Load, Unload** — Full launchctl control with one click
