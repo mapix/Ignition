@@ -41,6 +41,10 @@ At-a-glance system health with overview cards, problem agent detection, and reso
 
 See [implementation and verification](docs/launchd-management-plan.md). This source build does not change the upstream download release linked above.
 
+### Service tags (1.2.0)
+
+Assign colored tags to individual or selected services, then filter by tags or Untagged in the sidebar. Tags survive restarts and follow domain-specific service identities. See [tag behavior and verification](docs/service-tags.md).
+
 ### Agent Management
 - **Browse all domains** — User Agents, Global Agents/Daemons, System Agents/Daemons
 - **Start, Stop, Load, Unload** — Full launchctl control with one click

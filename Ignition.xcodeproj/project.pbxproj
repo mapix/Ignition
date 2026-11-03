@@ -19,6 +19,7 @@
 		37750B80F2ED4B248A2F7AE6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ECC706F905DF1831C6ED88B /* ContentView.swift */; };
 		390671189347FBCE08E67DCC /* ServiceManagementViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 375D10F038AA7A2679E9584D /* ServiceManagementViews.swift */; };
 		4200F9BAD08CD8BE4E167F3B /* PlistEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B162856F5C6A0AB9BF7EBAF /* PlistEditorView.swift */; };
+		426E7A2D6CFE93A90D2D066F /* ServiceTagService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DE68389B8E605425FF4F60 /* ServiceTagService.swift */; };
 		4B4D41C222E8A5B1B51DA082 /* CreateAgentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 730F97498E7996FE333520A3 /* CreateAgentView.swift */; };
 		519185CB8552CA586F0BB6F8 /* AgentListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5371BDB668B6C3A39BF288B /* AgentListView.swift */; };
 		5A97F5EE8F6B799CC89B97C5 /* HealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54CA7C79FE74C965811F733B /* HealthDashboardView.swift */; };
@@ -35,10 +36,13 @@
 		B088A9CB21BB2389519FDB8A /* IgnitionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 844B050EB860E8DA9912A7F3 /* IgnitionApp.swift */; };
 		C0DC765D210588D307FA7F1E /* ProcessDetailsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F42B40EC169EAFF2F1A3F45D /* ProcessDetailsService.swift */; };
 		CC49F725874F6F45C2B56089 /* ServiceManagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05D4401367E783BE96EC362 /* ServiceManagement.swift */; };
+		D5032B9CD4D610B5F7E9D243 /* ServiceTag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00EEC59CFEB41E21F4771292 /* ServiceTag.swift */; };
 		D9AC532A757CD03D67EAB589 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8712384CF50A82B4A6824C87 /* NotificationService.swift */; };
+		DA8330823D90B9FC299122B6 /* ServiceTagsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F06BF7ACFA352A69F9023A04 /* ServiceTagsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		00EEC59CFEB41E21F4771292 /* ServiceTag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceTag.swift; sourceTree = "<group>"; };
 		1E2EF98AA608A1E3AC8A4619 /* PlistValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlistValue.swift; sourceTree = "<group>"; };
 		1ECC706F905DF1831C6ED88B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2ABF8D0CAB1D9BC5F2D1194C /* ImportExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportExportService.swift; sourceTree = "<group>"; };
@@ -67,6 +71,8 @@
 		D94BB0B348A4D7C7B5C54131 /* LogTailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogTailService.swift; sourceTree = "<group>"; };
 		DD2998A67A713E55ABDE4607 /* AgentRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRowView.swift; sourceTree = "<group>"; };
 		DF74C69DDBD6CB764AFB6A1E /* LaunchAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAgent.swift; sourceTree = "<group>"; };
+		E2DE68389B8E605425FF4F60 /* ServiceTagService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceTagService.swift; sourceTree = "<group>"; };
+		F06BF7ACFA352A69F9023A04 /* ServiceTagsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceTagsView.swift; sourceTree = "<group>"; };
 		F41472089A9FDB01A4D625B0 /* LaunchDService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchDService.swift; sourceTree = "<group>"; };
 		F42B40EC169EAFF2F1A3F45D /* ProcessDetailsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessDetailsService.swift; sourceTree = "<group>"; };
 		F60737E7F30D81EE8C740920 /* AgentDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDetailView.swift; sourceTree = "<group>"; };
@@ -99,6 +105,7 @@
 				8B162856F5C6A0AB9BF7EBAF /* PlistEditorView.swift */,
 				B539B267346428F3D5799A58 /* ProcessDetailsView.swift */,
 				375D10F038AA7A2679E9584D /* ServiceManagementViews.swift */,
+				F06BF7ACFA352A69F9023A04 /* ServiceTagsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -131,6 +138,7 @@
 				DF74C69DDBD6CB764AFB6A1E /* LaunchAgent.swift */,
 				1E2EF98AA608A1E3AC8A4619 /* PlistValue.swift */,
 				C05D4401367E783BE96EC362 /* ServiceManagement.swift */,
+				00EEC59CFEB41E21F4771292 /* ServiceTag.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -165,6 +173,7 @@
 				5008A11091E3F5BE44117CA5 /* PlistWriteService.swift */,
 				F42B40EC169EAFF2F1A3F45D /* ProcessDetailsService.swift */,
 				3C1DCE7CE6EAFAD5D2B122AC /* ServiceDiagnostics.swift */,
+				E2DE68389B8E605425FF4F60 /* ServiceTagService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -267,6 +276,9 @@
 				14AA019EAA3ADA05280F83BF /* ServiceDiagnostics.swift in Sources */,
 				CC49F725874F6F45C2B56089 /* ServiceManagement.swift in Sources */,
 				390671189347FBCE08E67DCC /* ServiceManagementViews.swift in Sources */,
+				D5032B9CD4D610B5F7E9D243 /* ServiceTag.swift in Sources */,
+				426E7A2D6CFE93A90D2D066F /* ServiceTagService.swift in Sources */,
+				DA8330823D90B9FC299122B6 /* ServiceTagsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -342,7 +354,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Ignition/Info.plist;
@@ -351,7 +363,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.acelogic.ignition;
 				SDKROOT = macosx;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -365,7 +377,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Ignition/Info.plist;
@@ -374,7 +386,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.acelogic.ignition;
 				SDKROOT = macosx;
 				SWIFT_STRICT_CONCURRENCY = complete;

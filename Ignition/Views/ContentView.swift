@@ -72,6 +72,10 @@ struct ContentView: View {
             ProcessDetailsView(agent: agent).environmentObject(manager)
         }
         .sheet(item: $manager.diagnosticsAgent) { agent in DiagnosticsView(agent: agent) }
+        .sheet(isPresented: Binding(get: { !manager.taggingAgents.isEmpty },
+                                    set: { if !$0 { manager.taggingAgents = [] } })) {
+            TagEditorView(agents: manager.taggingAgents).environmentObject(manager)
+        }
         .sheet(isPresented: Binding(get: { !manager.pendingDeletion.isEmpty },
                                     set: { if !$0 { manager.pendingDeletion = [] } })) {
             DeleteServicesView(agents: manager.pendingDeletion).environmentObject(manager)
@@ -152,6 +156,9 @@ struct ContentView: View {
 enum SidebarSelection: Hashable {
     case domain(AgentDomain)
     case healthDashboard
+    case allServices
+    case tag(String)
+    case untagged
 }
 
 struct SidebarView: View {
@@ -160,6 +167,7 @@ struct SidebarView: View {
     @Binding var selectedAgent: LaunchAgent?
     @State private var isRefreshing = false
     @State private var sidebarSelection: SidebarSelection? = .domain(.userAgents)
+    @State private var showingTags = false
 
     var body: some View {
         List(selection: $sidebarSelection) {
@@ -182,6 +190,8 @@ struct SidebarView: View {
                         .foregroundColor(.red)
                 }
                 .tag(SidebarSelection.healthDashboard)
+                Label("All Services", systemImage: "square.grid.2x2")
+                    .tag(SidebarSelection.allServices)
             }
 
             Section("Domains") {
@@ -189,6 +199,21 @@ struct SidebarView: View {
                     SidebarRow(domain: domain, count: manager.domainCounts[domain] ?? 0)
                         .tag(SidebarSelection.domain(domain))
                 }
+            }
+            Section("Tags") {
+                Label {
+                    HStack { Text("Untagged"); Spacer(); Text("\(manager.untaggedServiceCount)").font(.caption).foregroundStyle(.secondary) }
+                } icon: { Image(systemName: "tag.slash") }
+                    .tag(SidebarSelection.untagged)
+                ForEach(manager.sortedTags) { tag in
+                    Label {
+                        HStack { Text(tag.name).lineLimit(1); Spacer(); Text("\(manager.serviceCount(for: tag))").font(.caption).foregroundStyle(.secondary) }
+                    } icon: { Image(systemName: "tag.fill").foregroundStyle(tag.color) }
+                        .tag(SidebarSelection.tag(tag.id))
+                        .help(tag.name)
+                }
+                Button("Manage Tags…", systemImage: "plus") { showingTags = true }
+                    .buttonStyle(.plain)
             }
         }
         .listStyle(.sidebar)
@@ -222,24 +247,56 @@ struct SidebarView: View {
             syncSelection()
         }
         .onChange(of: manager.selectedDomain) {
-            sidebarSelection = manager.selectedDomain.map(SidebarSelection.domain) ?? .healthDashboard
+            syncFromManager()
         }
+        .onChange(of: manager.tagFilter) { syncFromManager() }
+        .onChange(of: manager.includeAllDomains) { syncFromManager() }
         .onAppear {
             syncSelection()
         }
         .animation(.smooth, value: sidebarSelection)
+        .sheet(isPresented: $showingTags) { TagEditorView(agents: []).environmentObject(manager) }
     }
 
     private func syncSelection() {
+        manager.deselectAll()
         switch sidebarSelection {
         case .domain(let domain):
+            manager.tagFilter = .all
+            manager.includeAllDomains = false
             manager.selectedDomain = domain
             manager.statusFilter = .all
             selectedAgent = nil
         case .healthDashboard:
+            manager.tagFilter = .all
             manager.selectedDomain = nil
+        case .allServices:
+            manager.tagFilter = .all
+            manager.includeAllDomains = true
+            if manager.selectedDomain == nil { manager.selectedDomain = .userAgents }
+            selectedAgent = nil
+        case .tag(let id):
+            manager.tagFilter = .tag(id)
+            manager.includeAllDomains = true
+            if manager.selectedDomain == nil { manager.selectedDomain = .userAgents }
+            manager.statusFilter = .all
+            selectedAgent = nil
+        case .untagged:
+            manager.tagFilter = .untagged
+            manager.includeAllDomains = true
+            if manager.selectedDomain == nil { manager.selectedDomain = .userAgents }
+            manager.statusFilter = .all
+            selectedAgent = nil
         case nil:
             break
+        }
+    }
+    private func syncFromManager() {
+        guard let domain = manager.selectedDomain else { sidebarSelection = .healthDashboard; return }
+        switch manager.tagFilter {
+        case .tag(let id): sidebarSelection = .tag(id)
+        case .untagged: sidebarSelection = .untagged
+        case .all: sidebarSelection = manager.includeAllDomains ? .allServices : .domain(domain)
         }
     }
 }

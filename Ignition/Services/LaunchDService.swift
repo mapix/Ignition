@@ -21,6 +21,11 @@ class LaunchAgentManager: ObservableObject {
     @Published var processAgent: LaunchAgent?
     @Published var diagnosticsAgent: LaunchAgent?
     @Published var newlyCreatedID: String?
+    @Published var tagState = ServiceTagState()
+    @Published var tagFilter: ServiceTagFilter = .all
+    @Published var taggingAgents: [LaunchAgent] = []
+    let tagsURL: URL
+    var tagStorageError: String?
     @Published var pinnedLabels: Set<String> {
         didSet { defaults.set(Array(pinnedLabels), forKey: "pinnedAgentLabels") }
     }
@@ -44,9 +49,18 @@ class LaunchAgentManager: ObservableObject {
             .appendingPathComponent("Ignition", isDirectory: true)
         recoveryDirectory = storage.appendingPathComponent("DeletedServices", isDirectory: true)
         operationsURL = storage.appendingPathComponent("operations.json")
+        tagsURL = storage.appendingPathComponent("tags.json")
         pinnedLabels = Set(defaults.stringArray(forKey: "pinnedAgentLabels") ?? [])
         if let data = try? Data(contentsOf: operationsURL),
            let saved = try? JSONDecoder().decode([ServiceOperation].self, from: data) { operations = saved }
+        do {
+            if FileManager.default.fileExists(atPath: tagsURL.path) {
+                tagState = try JSONDecoder().decode(ServiceTagState.self, from: Data(contentsOf: tagsURL))
+            }
+        } catch {
+            tagStorageError = "Could not read service tags: \(error.localizedDescription)"
+            errorMessage = tagStorageError
+        }
         refreshDeletedServices()
         if automaticRefresh {
             refreshTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
@@ -72,6 +86,11 @@ class LaunchAgentManager: ObservableObject {
     var filteredAgents: [LaunchAgent] {
         agents.filter { agent in
             guard includeAllDomains || agent.domain == selectedDomain else { return false }
+            switch tagFilter {
+            case .all: break
+            case .untagged: if !tags(for: agent).isEmpty { return false }
+            case .tag(let id): if !tagState.assignments[agent.serviceTarget, default: []].contains(id) { return false }
+            }
             switch statusFilter {
             case .all: break
             case .running: if agent.status != .running { return false }
@@ -446,6 +465,8 @@ class LaunchAgentManager: ObservableObject {
             newlyCreatedID = created.id
             selectedDomain = created.domain
             statusFilter = .all
+            tagFilter = .all
+            includeAllDomains = false
             notice = "Created \(created.label)."
         }
         if andLoad, let agent = agents.first(where: { $0.label == formData.label && $0.domain == formData.domain }),

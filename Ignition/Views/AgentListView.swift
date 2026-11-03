@@ -18,6 +18,7 @@ struct AgentListView: View {
                     ForEach(ServiceFilter.allCases) { filter in Text(filter.rawValue).tag(filter) }
                 }.frame(maxWidth: 170)
                 Toggle("All domains", isOn: $manager.includeAllDomains).toggleStyle(.checkbox).font(.caption)
+                    .disabled(manager.tagFilter != .all)
                 Spacer()
             }.padding(10)
             if let refreshed = manager.lastRefreshed {
@@ -78,7 +79,7 @@ struct AgentListView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: manager.isLoading)
-        .navigationTitle(manager.selectedDomain?.rawValue ?? "Agents")
+        .navigationTitle(manager.inventoryTitle)
         .toolbar {
             ToolbarItemGroup {
                 Button {
@@ -126,6 +127,8 @@ struct BulkOperationsBar: View {
                     .controlSize(.small)
             } else {
                 Menu("Actions") {
+                    Button("Edit Tags…") { manager.taggingAgents = manager.selectedAgents }
+                    Divider()
                     ForEach(ServiceAction.allCases) { action in
                         Button(action.rawValue) {
                             isBusy = true
@@ -204,6 +207,7 @@ struct AgentContextMenu: View {
         }
         Button("Process Details…") { openWindow(id: "main"); manager.processAgent = agent }.disabled(agent.pid == nil)
         Button("Diagnostics…") { openWindow(id: "main"); manager.diagnosticsAgent = agent }
+        Button("Edit Tags…") { openWindow(id: "main"); manager.taggingAgents = [agent] }
         Divider()
 
         Button(manager.isPinned(agent) ? "Unpin from Menu Bar" : "Pin to Menu Bar") {

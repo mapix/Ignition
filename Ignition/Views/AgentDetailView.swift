@@ -28,6 +28,7 @@ struct AgentDetailView: View {
 
                 actionsSection
                     .padding(24)
+                ServiceTagsSection(agent: agent).padding(.horizontal, 24).padding(.bottom, 24)
 
                 Divider()
 
